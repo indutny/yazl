@@ -385,7 +385,9 @@ function Entry(metadataPath, isDirectory, options) {
   this.isDirectory = isDirectory;
   this.state = Entry.WAITING_FOR_METADATA;
   this.setLastModDate(options.mtime != null ? options.mtime : new Date());
-  if (options.mode != null) {
+  if (typeof options.externalFileAttributes === 'number') {
+    this.externalFileAttributes = options.externalFileAttributes;
+  } else if (options.mode != null) {
     this.setFileAttributesMode(options.mode);
   } else {
     this.setFileAttributesMode(isDirectory ? 0o40775 : 0o100664);
