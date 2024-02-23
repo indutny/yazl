@@ -1,5 +1,5 @@
 {
-  "name": "yazl",
+  "name": "@indutny/yazl",
   "version": "2.5.1",
   "description": "yet another zip library for node",
   "main": "index.js",
@@ -20,6 +20,9 @@
   ],
   "author": "Josh Wolfe <thejoshwolfe@gmail.com>",
   "license": "MIT",
+  "contributors": [
+    "Fedor Indutny <238531+indutny@users.noreply.github.com>"
+  ],
   "bugs": {
     "url": "https://github.com/thejoshwolfe/yazl/issues"
   },

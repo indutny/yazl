@@ -64,11 +64,11 @@ ZipFile.prototype.addBuffer = function(buffer, metadataPath, options) {
   if (options == null) options = {};
   if (options.size != null) throw new Error("options.size not allowed");
   var entry = new Entry(metadataPath, false, options);
-  entry.uncompressedSize = buffer.length;
-  entry.crc32 = crc32.unsigned(buffer);
+  entry.uncompressedSize = entry.uncompressedSize || buffer.length;
+  entry.crc32 = entry.crc32 || crc32.unsigned(buffer);
   entry.crcAndFileSizeKnown = true;
   self.entries.push(entry);
-  if (!entry.compress) {
+  if (!entry.compress || entry.raw) {
     setCompressedBuffer(buffer);
   } else {
     zlib.deflateRaw(buffer, function(err, compressedBuffer) {
@@ -145,7 +145,7 @@ function writeToOutputStream(self, buffer) {
 function pumpFileDataReadStream(self, entry, readStream) {
   var crc32Watcher = new Crc32Watcher();
   var uncompressedSizeCounter = new ByteCounter();
-  var compressor = entry.compress ? new zlib.DeflateRaw() : new PassThrough();
+  var compressor = entry.compress && !entry.raw ? new zlib.DeflateRaw() : new PassThrough();
   var compressedSizeCounter = new ByteCounter();
   readStream.pipe(crc32Watcher)
             .pipe(uncompressedSizeCounter)
@@ -153,11 +153,11 @@ function pumpFileDataReadStream(self, entry, readStream) {
             .pipe(compressedSizeCounter)
             .pipe(self.outputStream, {end: false});
   compressedSizeCounter.on("end", function() {
-    entry.crc32 = crc32Watcher.crc32;
+    entry.crc32 = entry.crc32 || crc32Watcher.crc32;
     if (entry.uncompressedSize == null) {
       entry.uncompressedSize = uncompressedSizeCounter.byteCount;
     } else {
-      if (entry.uncompressedSize !== uncompressedSizeCounter.byteCount) return self.emit("error", new Error("file data stream has unexpected number of bytes"));
+      if (!entry.raw && entry.uncompressedSize !== uncompressedSizeCounter.byteCount) return self.emit("error", new Error("file data stream has unexpected number of bytes"));
     }
     entry.compressedSize = compressedSizeCounter.byteCount;
     self.outputStreamCursor += entry.compressedSize;
@@ -398,16 +398,19 @@ function Entry(metadataPath, isDirectory, options) {
   } else {
     // unknown so far
     this.crcAndFileSizeKnown = false;
-    this.crc32 = null;
+    this.crc32 = options.crc32 || null;
     this.uncompressedSize = null;
     this.compressedSize = null;
     if (options.size != null) this.uncompressedSize = options.size;
   }
   if (isDirectory) {
     this.compress = false;
+    this.raw = false;
   } else {
     this.compress = true; // default
+    this.raw = false; // default
     if (options.compress != null) this.compress = !!options.compress;
+    if (options.raw != null) this.raw = !!options.raw;
   }
   this.forceZip64Format = !!options.forceZip64Format;
   if (options.fileComment) {
