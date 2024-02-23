@@ -403,7 +403,11 @@ function Entry(metadataPath, isDirectory, options) {
     this.crc32 = options.crc32 || null;
     this.uncompressedSize = null;
     this.compressedSize = null;
-    if (options.size != null) this.uncompressedSize = options.size;
+    if (options.uncompressedSize != null) {
+      this.uncompressedSize = options.uncompressedSize;
+    } else if (options.size != null) {
+      this.uncompressedSize = options.size;
+    }
   }
   if (isDirectory) {
     this.compress = false;
